@@ -11,7 +11,7 @@ app.use(express.static('public'));
 const db = new pg.Client({
 
   user: "postgres",
-  host: "localhost", 
+  host: "localhost",
   database: "secrets",
   password: "12345",
   port: 5432
@@ -38,21 +38,35 @@ app.get('/login', async (req, res) => {
 
 });
 
+app.get('/thankyou', async (req, res) => {
+  
+  res.render('thankyou.ejs');
+
+})
+
 app.post('/register', async (req, res) => {
   
   const email = req.body.username;
   const password = req.body.password;
 
-  const checkedEmail = await db.query("SELECT email FROM users WHERE email = $1", [email]);
+  try { 
 
-  if (checkedEmail.rows.length > 0) {
-    
-    res.send(`Email has alreadey exists....`);
+    const checkedEmail = await db.query("SELECT * FROM users WHERE email = $1", [email]);
 
-  } else {
+    if (checkedEmail.rows.length > 0) {
+
+      res.send("Email has already exists...");
+
+    } else {
+      
+      await db.query("INSERT INTO users(email, password) VALUES($1, $2)", [email, password]);
+      res.redirect('/thankyou');
+
+    }
+
+  } catch (err) {
     
-    await db.query("INSERT INTO users(email, password) VALUES($1, $2)", [email, password]);
-    res.render('secrets.ejs');
+    console.log(err);
 
   }
 
@@ -64,33 +78,32 @@ app.post('/login', async (req, res) => {
   const password = req.body.password;
 
   try {
-    
-    const checkedEmail = await db.query("SELECT * FROM users WHERE email = $1", [email]);
 
-    if (checkedEmail.rows.length > 0) {
+    const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+
+    if (result.rows.length > 0) {
       
-      const user = checkedEmail.rows[0];
-      const userPass = user.password;
+      const user = result.rows[0];
+      const userPassword = user.password;
 
-      if (userPass === password) {
+      if (userPassword === password) {
         
         res.render('secrets.ejs');
 
       } else {
         
-        res.send('Password does not match');
+        res.send('Password does not matched');
 
       }
 
     } else {
       
-      res.send('user not found');
+      res.send('User not found');
 
     }
 
-  } catch (err) {
+   } catch (err) {
     
-    console.log(err);
 
   }
 
